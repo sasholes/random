@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+	<title>Tetris</title>
+	<script>
+	
+	//var sSize = 20;
+	//var backgroundColor = 'black';
+	///
+	
+	//var canvasBounds = [[0, 0], [500, 700]];
+	//var canvasBounds = [[0, 0], [Math.floor(myCanvas.width), Math.floor(myCanvas.height)]];
+	//var newGame = new GameField("tetrisCanvas", 20);
+	
+	var Piece = function (pieceType, xCentroid, yCentroid, sSize) {
+		//console.log('CALLING PIECE CONSTRUCTOR!!!!!!!!!!!!!!!!  ' + pieceType);
+		this.pieceType = pieceType;
+		this.color = 'black';
+		this.xCentroid = xCentroid;
+		this.xCentroidNext = xCentroid;
+		this.yCentroid = yCentroid;
+		this.yCentroidNext = yCentroid;
+		this.sSize = sSize;
+		this.shape = [];
+		this.shapeNext = [];
+		switch (this.pieceType) {
+		case "I":
+			this.color = 'red';
+			this.shape.push([0, -2], [0, -1], [0, 0], [0, 1]);
+			this.shapeNext.push([0, -2], [0, -1], [0, 0], [0, 1]);
+			break;
+		case "Z":
+			this.color = 'blue';
+			this.shape.push([-1, 1], [0, 0], [0, 1], [1, 0]);
+			this.shapeNext.push([-1, 1], [0, 0], [0, 1], [1, 0]);
+			break;
+		case "S":
+			this.color = 'green';
+			this.shape.push([-1, 0], [0, 0], [0, 1], [1, 1]);
+			this.shapeNext.push([-1, 0], [0, 0], [0, 1], [1, 1]);
+			break;
+		case "J":
+			this.color = 'yellow';
+			this.shape.push([-1, 0], [0, 0], [1, 0], [1, -1]);
+			this.shapeNext.push([-1, 0], [0, 0], [1, 0], [1, -1]);
+			break;
+		case "L":
+			this.color = 'orange';
+			this.shape.push([-1, -1], [-1, 0], [0, 0], [1, 0]);
+			this.shapeNext.push([-1, -1], [-1, 0], [0, 0], [1, 0]);
+			break;
+		case "T":
+			this.color = 'magenta';
+			this.shape.push([-1, 0], [0, -1], [0, 0], [1, 0]);
+			this.shapeNext.push([-1, 0], [0, -1], [0, 0], [1, 0]);
+			break;
+		default:  // Case O
+			this.color = 'gray';
+			this.shape.push([-1, 0], [-1, 1], [0, 0], [0, 1]);
+			this.shapeNext.push([-1, 0], [-1, 1], [0, 0], [0, 1]);
+			break;
+		}
+	}
+	
+	Piece.prototype.drawPiece = function() {
+		this.drawPieceColor(this.color);
+	}
+	
+	Piece.prototype.drawPieceColor = function(drawColor) {
+		var puppy = document.getElementById("tetrisCanvas").getContext("2d");
+		puppy.beginPath();
+		puppy.fillStyle = drawColor;
+		for (index = 0; index < this.shape.length; index++) {
+			var coordinates = this.shape[index];
+			///
+			var x = coordinates[0];
+			var y = coordinates[1];
+			//console.log("Draw: " + (this.xCentroid + coordinates[0])*this.sSize + ', '  + (this.yCentroid + coordinates[1])*this.sSize + ', ' + this.sSize + ', ' + this.sSize);
+			puppy.rect((this.xCentroid + coordinates[0])*this.sSize, (this.yCentroid + coordinates[1])*this.sSize, this.sSize, this.sSize);
+			puppy.fill();
+			puppy.stroke();
+		}
+	}
+	
+	Piece.prototype.findFilledBoxes = function() {
+		var filled = [];
+		for (index = 0; index < this.shape.length; index++) {
+			var coordinates = this.shape[index];
+			var x = coordinates[0];
+			var y = coordinates[1];
+			//var coordinates = [
+			filled.push([this.xCentroid + coordinates[0], (this.yCentroid + coordinates[1])]);
+		}
+		return filled;
+	}
+	
+	Piece.prototype.erase = function() {
+		this.drawPieceColor('black');
+	}
+	
+	Piece.prototype.rotate = function(direction) {
+		var transform = [];
+		if (direction == 'clockwise') {
+			transform = [1, -1];
+		}
+		else {
+			transform = [-1, 1];
+		}
+		
+		for (var index = 0; index < this.shape.length; index++) {
+			var coordinates = this.shape[index];
+			var x = coordinates[0];
+			var y = coordinates[1];
+			this.shapeNext[index] = [(transform[0] * y), (transform[1] * x)];
+			console.log('   x:' +x + ' Y:' +y + ' newx:' + this.shape[index][0] + ' newY:' + this.shape[index][1]);
+		}
+	}
+	
+	Piece.prototype.tryMove = function(direction) {
+		switch (direction.toLowerCase()) {
+		case "right":
+			this.xCentroidNext = this.xCentroid + 1;
+			break;
+		case "left":
+			this.xCentroidNext = this.xCentroid - 1;
+			break;
+		case "down":
+			this.yCentroidNext = this.yCentroid + 1;
+			break;
+		case "rotate":
+			var transform = [];
+			if (direction == 'clockwise') {
+				transform = [1, -1];
+			}
+			else {
+				transform = [-1, 1];
+			}
+			
+			for (var index = 0; index < this.shape.length; index++) {
+				var coordinates = this.shape[index];
+				var x = coordinates[0];
+				var y = coordinates[1];
+				this.shapeNext[index] = [(transform[0] * y), (transform[1] * x)];
+				console.log('   x:' +x + ' Y:' +y + ' newx:' + this.shape[index][0] + ' newY:' + this.shape[index][1]);
+			}
+		default:
+			console.log("BAD MOVEMENT");
+		}
+	}
+	
+	Piece.prototype.moveRight = function() {
+		this.xCentroidNext = this.xCentroid + 1;
+	}
+	
+	Piece.prototype.moveLeft = function() {  
+		this.xCentroidNext = this.xCentroid - 1; 
+	}
+	
+	Piece.prototype.drop = function() {
+		this.yCentroidNext = this.yCentroid + 1;
+	}
+	
+	Piece.prototype.movement = function() {
+		this.erase();
+		console.log('MOVEMENT');
+		
+		this.xCentroid = this.xCentroidNext;
+		this.yCentroid = this.yCentroidNext;
+		for (var index = 0; index < this.shapeNext.length; index++) {
+			this.shape[index] = this.shapeNext[index];
+		}	
+		this.drawPiece();	
+	}
+	
+	
+	Piece.prototype.undoMovement = function() {
+		this.xCentroidNext = this.xCentroid;
+		this.yCentroidNext = this.yCentroid;
+		for (var index = 0; index < this.shape.length; index++) {
+			this.shapeNext[index] = this.shape[index];
+		}
+	}
+	
+	var GameField = function (canvasName, blockSize) {
+		this.gameOn = false;
+		this.msInterval = 1000;
+		this.points = 0;
+		
+		this.canvasName = canvasName;
+		this.myCanvasObj = document.getElementById(canvasName);
+		this.myCanvas = document.getElementById(canvasName).getContext("2d");
+		
+		this.backgroundColor = 'black';
+		this.sSize = blockSize;
+		this.myCanvas.fillStyle = this.backgroundColor;
+		this.canvasBounds =  [[0, 0], [20, 20]];
+		//this.canvasBounds = [[0, 0], [(Math.round(this.myCanvas.width/this.sSize)), (Math.round(this.myCanvas.height/this.sSize))]];
+		console.log('canvas bounds: [ ' + this.canvasBounds[0] + ', ' + this.canvasBounds[1]);
+		console.log('Width: ' + this.myCanvas.width + ', and height: ' + this.myCanvas.height);
+		
+		this.allPieces = [];
+		this.filledSquares = [];
+		this.currentPiece = null;
+		
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+		for (var i = minBounds[1]; i < maxBounds[1]; i++) {
+			this.filledSquares.push(new Map());
+		}
+		this.addPiece();
+		
+		this.displayMessage('PRESS START TO BEGIN GAME');
+	}
+	
+	GameField.prototype.endGame = function () {
+		
+		//console.log('GAME OVER GAME OVER GAME OVER');
+		
+		if (this.gameOn) {
+			var self = this;
+			window.clearInterval(interval);
+			this.gameOn = false;
+		}
+		
+		//display end screen;
+		this.displayMessage('GAME OVER!');
+	}
+	
+	GameField.prototype.displayMessage = function(message) {
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+		
+		var border = 1;
+		var boxWidth = Math.round(this.myCanvas.measureText(message).width / this.sSize) + border;
+		var boxHeight = 1 + border; // X2 times pixel size
+		var boxCenterX = (maxBounds[0] - minBounds[0] - boxWidth)/2;
+		var boxCenterY = (maxBounds[1] - minBounds[1] - boxHeight)/2;
+		if (boxCenterX < 0) {
+			boxCenterX = 0;
+		}
+		if (boxCenterY < 0) {
+			boxCenterY = 0;
+		}
+		
+		this.myCanvas.beginPath();
+		this.myCanvas.fillStyle = 'white';
+		
+		this.myCanvas.rect((this.sSize*boxCenterX), (this.sSize*boxCenterY), (boxWidth*this.sSize), (boxHeight*this.sSize));
+		this.myCanvas.fill();
+		this.myCanvas.stroke();
+		this.myCanvas.fillStyle = 'black';
+		this.myCanvas.font = "20px Arial";
+		this.myCanvas.fillText(message, Math.round(this.sSize*(boxCenterX + border/2)), Math.round(this.sSize*(boxCenterY + 1 + (border/2))));
+		// Do somthing to actually diplay message
+	}
+	
+	GameField.prototype.addPiece = function() {
+		console.log('--------ADDING NEW PIECE-------');
+		var yCentroid = -1;
+		var allTypes = ['I', 'Z', 'S', 'J', 'L', 'T', 'O'];
+		var xMaxBound = this.canvasBounds[1];
+		do {
+			//console.log('add piece loop');
+			var type = allTypes[Math.round(Math.random() * (allTypes.length-1))];
+			var xCentroid = Math.round(Math.random() * (xMaxBound[0]-1));
+			//console.log("new piece: " + type + "at" + xCentroid);
+			this.currentPiece = new Piece(type, xCentroid, yCentroid, this.sSize);
+		}
+		while (this.checkCollisions())
+		
+		this.allPieces.push(this.currentPiece);
+	}
+	
+	
+	GameField.prototype.addPieceToFilled = function() {
+		var filledPieceSquares = this.currentPiece.findFilledBoxes();
+		var minBounds = this.canvasBounds[0];
+		
+		for (var i = 0; i < (filledPieceSquares.length); i++) {
+			var coordinates = filledPieceSquares[i];
+			var x = coordinates[0];
+			var y = coordinates[1];
+			if (this.checkTopCollisions()) {
+				
+			}
+			if (y < (minBounds[1] + 1)) {
+				console.log('Now time to end game');
+				this.endGame();
+				return true;
+			}
+				
+			var row = this.filledSquares[y];
+			row.set(x, this.currentPiece.color);
+		}
+		return false;
+	}
+	
+	GameField.prototype.redrawGame = function() {
+		this.setBackground();
+	
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+	
+		for (var y = minBounds[1]; y < maxBounds[1]; y++) {
+			var row = this.filledSquares[y];
+			for (var x of row.keys()) {
+				this.myCanvas.beginPath();
+				this.myCanvas.fillStyle = row.get(x);
+				
+				this.myCanvas.rect(x*this.sSize, y*this.sSize, this.sSize, this.sSize);
+				this.myCanvas.fill();
+				this.myCanvas.stroke();
+				
+			}
+		}
+		
+		this.currentPiece.drawPiece();
+	}
+	
+	GameField.prototype.removeRow = function(rowNumber) {
+		console.log('****clearing a row*******');
+		for (var i = rowNumber; i > 0; i--) {
+			//console.log('set row '+ i + ' to values in row ' + (i - 1));
+			var row = this.filledSquares[i];
+			var copyFrom = this.filledSquares[i - 1];
+			row.clear();
+			for (var col of copyFrom.keys()) {
+				//console.log('COL IS: ' + col + ',  ROW IS: ' + copyFrom.get(col));
+				row.set(col, copyFrom.get(col));
+			}
+		}
+		var topRow = this.filledSquares[0];
+		topRow = new Map();
+		
+		this.redrawGame();
+	}
+	
+	GameField.prototype.findSolidRow = function() {
+		//console.log('FIND SOLID ROW!!!');
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+
+		
+		outerLoop:
+		for (var row = 0; row < this.filledSquares.length; row++) {
+			var filledRowSquares = this.filledSquares[row];
+			for (var col = minBounds[0]; col < (maxBounds[0]); col++) {
+				if (!(filledRowSquares.has(col))) {
+					continue outerLoop;
+				}
+			}
+			console.log('ROW: ' + row + '!!!!!!!!!!!!!!!!!!!!!!');
+			//Remove the row
+			this.removeRow(row);
+			this.points = this.points++;
+			if ((this.points % 5) === 0) {
+				this.changeInterval();
+			}
+		}
+		
+	}
+	
+	GameField.prototype.increment = function() {
+		this.move('down');
+		var balh = this.findSolidRow();
+		
+	}
+	
+	GameField.prototype.setBackground = function() {
+		this.myCanvas.fillStyle = this.backgroundColor;
+		this.myCanvas.fillRect(this.canvasBounds[0][0]*this.sSize, this.canvasBounds[0][1]*this.sSize, this.canvasBounds[1][0]*this.sSize, this.canvasBounds[1][1]*this.sSize);
+	}
+	
+	GameField.prototype.checkTopCollisions = function() {
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+		
+		var topRow = this.filledSquares[minBounds[1]];
+		if (topRow.size > 0) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	GameField.prototype.checkCollisions = function() {
+		var blockToMove = this.currentPiece;
+		
+		var minBounds = this.canvasBounds[0];
+		var maxBounds = this.canvasBounds[1];
+		
+		for (var k = 0; k < blockToMove.shapeNext.length; k++) {
+			var coordBTM = blockToMove.shapeNext[k];
+			var xBTM = coordBTM[0] + blockToMove.xCentroidNext;
+			var yBTM = coordBTM[1] + blockToMove.yCentroidNext;
+			
+			if ((xBTM < minBounds[0]) || (xBTM >= maxBounds[0]) || (yBTM >= maxBounds[1])) {
+				return true;
+			}
+			
+			// Check against other (fixed) pieces
+			for (var y = minBounds[1]; y < maxBounds[1]; y++) {
+				var row = this.filledSquares[y];
+				for (var x of row.keys()) {
+					if ((x === xBTM) && (y === yBTM)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
+	GameField.prototype.move = function(direction) {
+		if (!(this.gameOn)) {
+			return;
+		}
+		this.currentPiece.tryMove(direction);
+		if (this.checkCollisions()) {
+			this.currentPiece.undoMovement();
+			if (direction === "down") {
+				if (this.addPieceToFilled()) {
+					console.log('add piece to filled returned true');
+					return true;
+				};
+				this.addPiece();
+				this.currentPiece.drawPiece();
+			}
+			return true;
+		}
+		else {
+			this.currentPiece.movement();
+		}
+		return false;
+	}	
+	
+	GameField.prototype.checkArrow = function(event) {
+		if (!(this.gameOn)) {
+			return;
+		}
+		
+		var keyIn = event.keyCode;
+		if ((keyIn >= 37) && (keyIn <= 40)) {
+			event.preventDefault();
+		}
+		switch (keyIn) {
+			case 40:
+				while(!(this.move('down'))) {
+					console.log('Dropping now!');
+				}
+				return;
+			case 37:
+				this.move('left');
+				break;
+			case 38:
+				this.move('rotate');
+				break;
+			case 39:
+				this.move('right');
+				break;
+		}
+	}
+	
+	GameField.prototype.changeInterval = function() {
+		if (this.gameOn) {
+			this.pause();
+		}
+		var oldInterval = this.msInterval;
+		this.msInterval = oldInterval - 100;
+		if (this.msInterval < 100) {
+			this.msInterval = 100;
+		}
+		this.start();
+		console.log('New interval is ' + this.msInterval);
+	}
+	
+	GameField.prototype.start = function() {
+		
+		if (!(this.gameOn)) {
+			var self = this;
+			interval = window.setInterval(function() {self.increment();}, this.msInterval);
+			this.redrawGame();
+			this.gameOn = true;
+			console.log('setting to true');
+		}
+	}
+	
+	GameField.prototype.pause = function() {
+		console.log('GAME PAUSED');
+		if (this.gameOn) {
+			var self = this;
+			window.clearInterval(interval);
+			this.gameOn = false;
+			console.log('setting to false');
+		}
+		this.displayMessage('PAUSED');
+	}
+	
+	function init() {
+		newGame = new GameField("tetrisCanvas", 20);
+		
+		newGame.setBackground();
+		newGame.increment();
+		
+		window.addEventListener("keydown", newGame.checkArrow(event), true);
+	}
+	
+	//window.addEventListener("keydown", newGame.checkArrow(event), true);
+	//function checkArrow(event) { newGame.checkArrow(event); };
+	
+	//<body onload="init()">
+	
+	
+	//document.getElementById("tetrisCanvas").setAttribute("tabindex", 0);
+	
+	</script>
+</head>
+
+
+<body>
+<hr>
+	<p title="Sara's Tetris">
+	<button type="yolo" onclick="newGame.start()">Start</button>
+	<button type="yolo2" onclick="newGame.pause()">Pause</button>
+	<button type="yolo3" onclick="newGame.changeInterval()"> Speed Up </button>
+<hr>
+	<canvas id="tetrisCanvas" width="400" height="400" style="border:1px solid #000000"></canvas>
+	<body onkeydown="newGame.checkArrow(event)" onload="init()">
+<hr>
+</p>
+
+</body>
+<html>
